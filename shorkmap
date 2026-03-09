@@ -1,0 +1,56 @@
+#!/bin/sh
+
+######################################################
+##             SHORK UTILITY - SHORKMAP             ##
+######################################################
+## A utility for changing SHORK 486's keyboard      ##
+## layout (keymap)                                  ##
+######################################################
+## Licence: GNU GENERAL PUBLIC LICENSE Version 3    ##
+######################################################
+## Kali (sharktastica.co.uk)                        ##
+######################################################
+
+
+
+set -e
+
+. "$(dirname -- "$0")/shorkcommon.sh"
+
+KEYMAPS="/usr/share/keymaps"
+KEYMAP_CONF="/etc/keymap"
+
+AVAILABLE=$(ls "$KEYMAPS"/*.kmap.bin 2>/dev/null | sed 's#.*/##; s#\.kmap.bin$##' | paste -sd '|' -)
+AVAILABLE=$(echo "$AVAILABLE" | sed 's/|/ | /g')
+get_term_size
+
+if [ $# -ne 1 ]; then
+    printf "Changes the system's keyboard layout (keymap).\n\n" | fold -s -w "$TERM_WIDTH"
+    echo "Usage: shorkmap {${AVAILABLE}}" | fold -s -w "$TERM_WIDTH"
+    if [ -s $KEYMAP_CONF ]; then
+        CUR="$(cat $KEYMAP_CONF)"
+    else
+        CUR="us"
+    fi
+    echo "Current keymap: $CUR"
+    exit 1
+fi
+
+LAYOUT="$1"
+MAPFILE="$KEYMAPS/$LAYOUT.kmap.bin"
+
+if [ ! -f "$MAPFILE" ]; then
+    echo "Unknown keymap: $LAYOUT"
+    echo "Available keymaps: ${AVAILABLE}"
+    exit 1
+fi
+
+if ! loadkmap < "$MAPFILE"; then
+    echo "ERROR: failed to load keymap: $LAYOUT"
+    exit 1
+fi
+
+echo "$LAYOUT" > "$KEYMAP_CONF"
+sync
+
+echo "Applied keymap: $LAYOUT"
